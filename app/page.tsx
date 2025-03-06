@@ -1,34 +1,80 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import AuthButtons from '../components/AuthButtons';
+import { useRouter } from 'next/navigation';
+import { getCurrentUser, onAuthStateChange } from './lib/auth';
+import FirebaseTest from './components/FirebaseTest';
 
 export default function LandingPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const router = useRouter();
+  
+  useEffect(() => {
+    // 컴포넌트 마운트 시 로그인 상태 확인
+    const user = getCurrentUser();
+    setIsLoggedIn(!!user);
+    
+    // Firebase의 인증 상태 변화 리스너 설정
+    const unsubscribe = onAuthStateChange((user) => {
+      setIsLoggedIn(!!user);
+    });
+    
+    // 컴포넌트 언마운트 시 리스너 해제
+    return () => unsubscribe();
+  }, []);
+
   const handleServiceClick = (e: React.MouseEvent) => {
     e.preventDefault();
     alert('서비스 예정입니다 아래 사진으로 보는 위험과 위험성평가 도구를 베타테스트 해보세요.');
+  };
+
+  const handleStartClick = () => {
+    if (isLoggedIn) {
+      router.push('/camera');
+    } else {
+      router.push('/auth');
+    }
+  };
+
+  const handleCardClick = (e: React.MouseEvent, route: string) => {
+    if (!isLoggedIn) {
+      e.preventDefault();
+      alert('이 서비스를 이용하려면 로그인이 필요합니다.');
+      router.push('/auth');
+    } else {
+      router.push(route);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
       {/* 히어로 섹션 */}
       <section className="relative bg-blue-600 text-white">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <Link href="/" className="text-2xl font-bold">AI Camera & Risk Assessment</Link>
+            <AuthButtons />
+          </div>
+        </div>
+        
         <div className="container mx-auto px-4 py-16 md:py-24">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-6">
               <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-                안전 위험성 평가 서비스
+                AI & SAFETY
               </h1>
               <p className="text-xl md:text-2xl text-blue-100">
                 AI 기술로 산업현장의 위험요소를 발견하고 개선하세요
               </p>
               <div className="flex gap-4">
                 <button 
-                  onClick={handleServiceClick}
+                  onClick={handleStartClick}
                   className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
                 >
-                  시작하기
+                  {isLoggedIn ? '분석 시작하기' : '시작하기'}
                 </button>
                 <button 
                   onClick={handleServiceClick}
@@ -65,7 +111,10 @@ export default function LandingPage() {
         {/* 서비스 카드 섹션 */}
         <div className="grid md:grid-cols-2 gap-8 mb-16">
           {/* 사진으로 보는 위험 */}
-          <Link href="/camera" className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
+          <div 
+            onClick={(e) => handleCardClick(e, '/camera')} 
+            className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+          >
             <div className="p-8">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-6">
                 <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,10 +128,13 @@ export default function LandingPage() {
                 관련 법령과 개선 방안을 제시합니다.
               </p>
             </div>
-          </Link>
+          </div>
 
           {/* 위험성평가 도구 */}
-          <Link href="/assessment" className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
+          <div 
+            onClick={(e) => handleCardClick(e, '/assessment')}
+            className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+          >
             <div className="p-8">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +151,7 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
-          </Link>
+          </div>
         </div>
       </section>
 
@@ -158,6 +210,8 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <FirebaseTest />
     </div>
   );
 } 
